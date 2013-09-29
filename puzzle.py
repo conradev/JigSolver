@@ -4,7 +4,7 @@ import cv2
 import time
 import numpy as np
 
-
+FLANN_INDEX_KDTREE = 1
 
 def bounding_box(points):
     """Takes a list of (x, y) and returns upper left and lower right points"""
@@ -99,6 +99,24 @@ def get_blob(img):
     img = cv2.GaussianBlur(hsv,(5,5),6)
     return cv2.inRange(img, (0,100,34), (255,255,255))
 
+def find_features(img):
+	gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	sift = cv2.SIFT()
+	return sift.detectAndCompute(gray_img, None)
+
+def find_image_box(outer_img, inner_img):
+	(outer_points, outer_descs) = find_features(outer_img)
+	(inner_points, inner_descs) = find_features(inner_img)
+	matcher = cv2.FlannBasedMatcher(dict(algorithm = FLANN_INDEX_KDTREE, trees = 4), {})
+	matches = matcher.knnMatch(inner_descs.astype(np.float32), outer_descs.astype(np.float32), 2)
+	matches = [m[0] for m in matches if len(m) == 2 and m[0].distance < m[1].distance * 0.75]
+	p0 = [inner_points[m.queryIdx].pt for m in matches]
+	p1 = [outer_points[m.trainIdx].pt for m in matches]
+	p0, p1 = np.float32((p0, p1))
+	H, status = cv2.findHomography(p0, p1, cv2.RANSAC, 3.0)
+	
+	print matches
+
 def main():
     piece_img = cv2.imread('samples/piece_small.jpg')[100:-100,100:-100]
     edges = get_edges(piece_img)
@@ -107,15 +125,13 @@ def main():
     x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, mask)
 
     piece = piece_img[y_min:y_max,x_min:x_max]
-    cv2.imshow('Display', piece)
+    # cv2.imshow('Display', piece)
 
     board_img = cv2.imread('samples/box_med.jpg')
     sub_images = get_subimages(board_img, 5, 7)
-    cv2.imshow('Bottom Left', sub_images[4])
+    # cv2.imshow('Bottom Left', sub_images[4])
 
-    cv2.waitKey(500)
-    while True:
-        time.sleep(0.5)
+    find_image_box(board_img, piece_img)
 
 if __name__ == '__main__':
     main()
