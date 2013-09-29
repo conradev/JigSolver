@@ -81,6 +81,17 @@ def get_subimages(img, rows, columns):
             sub_images.append(img[y_min:y_max,x_min:x_max])
     return sub_images
 
+def compute(piece_file, board_file):
+    piece_img = cv2.imread(piece_file)
+    edges = get_edges(piece_img)
+    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, edges)
+
+    piece = piece_img[y_min:y_max,x_min:x_max]
+
+    board_img = cv2.imread(board_file)
+    sub_images = get_subimages(board_img, 5, 7)
+    return 'eventually this will be a good response'
+
 def main():
     piece_img = cv2.imread('samples/piece_small.jpg')
     edges = get_edges(piece_img)
