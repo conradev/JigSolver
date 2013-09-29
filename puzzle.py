@@ -92,7 +92,7 @@ def find_image_box(outer_img, inner_img):
     return cv2.perspectiveTransform(box.reshape(1, -1, 2), H).reshape(-1, 2)
 
 def solve_puzzle(piece_img, board_img):
-    piece_img = cv2.imread(piece_img)[100:-100,100:-100]
+    piece_img = cv2.imread(piece_img)
     board_img = cv2.imread(board_img)
     x_min, x_max, y_min, y_max = get_trimmed_box(piece_img)
     piece = piece_img[y_min:y_max,x_min:x_max]
