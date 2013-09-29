@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 from werkzeug import secure_filename
 import os
 import puzzle
@@ -14,7 +14,7 @@ def solve():
     request.files['piece'].save(piece_filename)
     request.files['board'].save(board_filename)
     results = puzzle.solve_puzzle(piece_filename, board_filename)
-    return json.dumps([{'x':int(x),'y':int(y)} for x,y in results])
+    return Response(json.dumps([{'x':int(x),'y':int(y)} for x,y in results]), content_type='application/json; charset=utf-8')
 
 if __name__ == '__main__':
     app.run(debug=True)
