@@ -84,7 +84,9 @@ def get_subimages(img, rows, columns):
 def compute(piece_file, board_file):
     piece_img = cv2.imread(piece_file)
     edges = get_edges(piece_img)
-    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, edges)
+    fgrnd = get_blob(piece_img)
+    mask = cv2.bitwise_or(edges, fgrnd)
+    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, mask)
 
     piece = piece_img[y_min:y_max,x_min:x_max]
 
@@ -92,10 +94,17 @@ def compute(piece_file, board_file):
     sub_images = get_subimages(board_img, 5, 7)
     return 'eventually this will be a good response'
 
+def get_blob(img):
+    hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+    img = cv2.GaussianBlur(hsv,(5,5),6)
+    return cv2.inRange(img, (0,100,34), (255,255,255))
+
 def main():
-    piece_img = cv2.imread('samples/piece_small.jpg')
+    piece_img = cv2.imread('samples/piece_small.jpg')[100:-100,100:-100]
     edges = get_edges(piece_img)
-    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, edges)
+    fgrnd = get_blob(piece_img)
+    mask = cv2.bitwise_or(fgrnd, edges)
+    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, mask)
 
     piece = piece_img[y_min:y_max,x_min:x_max]
     cv2.imshow('Display', piece)
