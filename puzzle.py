@@ -25,6 +25,11 @@ def get_edges(img):
     img = cv2.Canny(img,lowThreshold,lowThreshold*ratio,apertureSize = kernel_size)
     return img
 
+def get_blob(img):
+    hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+    img = cv2.GaussianBlur(hsv,(5,5),6)
+    return cv2.inRange(img, (0,100,34), (255,255,255))
+
 def get_all_nonzero(img):
     """Return a list of (x,y) for each point in the image that is not zero"""
     edge_points = []
@@ -34,9 +39,9 @@ def get_all_nonzero(img):
                 edge_points.append((j, i))
     return edge_points
 
-
-def get_trimmed_box(img, edges):
+def get_trimmed_box(img):
     """Approximate the square bit off the puzzle piece in img"""
+    edges = cv2.bitwise_or(get_blob(img), get_edges(img))
     edge_points = get_all_nonzero(edges)
     (x_min, y_min), (x_max, y_max) = bounding_box(edge_points)
 
@@ -67,71 +72,33 @@ def get_trimmed_box(img, edges):
 
     return new_x_min, new_x_max, new_y_min, new_y_max
 
-def get_subimages(img, rows, columns):
-    """Cuts an image into the number of rows and columns provided and returns an array of images"""
-    height = len(img)
-    width = len(img[0])
-    sub_height = np.ceil(height / rows)
-    sub_width = np.ceil(width / columns)
-    sub_images = []
-    for i in range(columns):
-        for j in range(rows):
-            (x_min, y_min) = (i * sub_width, j * sub_height)
-            (x_max, y_max) = (x_min + sub_width, y_min + sub_height)
-            sub_images.append(img[y_min:y_max,x_min:x_max])
-    return sub_images
-
-def compute(piece_file, board_file):
-    piece_img = cv2.imread(piece_file)
-    edges = get_edges(piece_img)
-    fgrnd = get_blob(piece_img)
-    mask = cv2.bitwise_or(edges, fgrnd)
-    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, mask)
-
-    piece = piece_img[y_min:y_max,x_min:x_max]
-
-    board_img = cv2.imread(board_file)
-    sub_images = get_subimages(board_img, 5, 7)
-    return 'eventually this will be a good response'
-
-def get_blob(img):
-    hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-    img = cv2.GaussianBlur(hsv,(5,5),6)
-    return cv2.inRange(img, (0,100,34), (255,255,255))
-
 def find_features(img):
-	gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-	sift = cv2.SIFT()
-	return sift.detectAndCompute(gray_img, None)
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    sift = cv2.SIFT()
+    return sift.detectAndCompute(gray_img, None)
 
 def find_image_box(outer_img, inner_img):
-	(outer_points, outer_descs) = find_features(outer_img)
-	(inner_points, inner_descs) = find_features(inner_img)
-	matcher = cv2.FlannBasedMatcher(dict(algorithm = FLANN_INDEX_KDTREE, trees = 4), {})
-	matches = matcher.knnMatch(inner_descs.astype(np.float32), outer_descs.astype(np.float32), 2)
-	matches = [m[0] for m in matches if len(m) == 2 and m[0].distance < m[1].distance * 0.75]
-	p0 = [inner_points[m.queryIdx].pt for m in matches]
-	p1 = [outer_points[m.trainIdx].pt for m in matches]
-	p0, p1 = np.float32((p0, p1))
-	H, status = cv2.findHomography(p0, p1, cv2.RANSAC, 3.0)
-	
-	print matches
+    (outer_points, outer_descs) = find_features(outer_img)
+    (inner_points, inner_descs) = find_features(inner_img)
+    matcher = cv2.FlannBasedMatcher(dict(algorithm = FLANN_INDEX_KDTREE, trees = 4), {})
+    matches = matcher.knnMatch(inner_descs.astype(np.float32), outer_descs.astype(np.float32), 2)
+    matches = [m[0] for m in matches if len(m) == 2 and m[0].distance < m[1].distance * 0.75]
+    p0 = [inner_points[m.queryIdx].pt for m in matches]
+    p1 = [outer_points[m.trainIdx].pt for m in matches]
+    p0, p1 = np.float32((p0, p1))
+    H, status = cv2.findHomography(p0, p1, cv2.RANSAC, 3.0)
+    height, width = inner_img.shape[:2]
+    box = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
+    return cv2.perspectiveTransform(box.reshape(1, -1, 2), H).reshape(-1, 2)
 
 def main():
-    piece_img = cv2.imread('samples/piece_small.jpg')[100:-100,100:-100]
-    edges = get_edges(piece_img)
-    fgrnd = get_blob(piece_img)
-    mask = cv2.bitwise_or(fgrnd, edges)
-    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, mask)
-
-    piece = piece_img[y_min:y_max,x_min:x_max]
-    # cv2.imshow('Display', piece)
-
+    piece_img = cv2.imread('samples/piece2_small.jpg')[100:-100,100:-100]
     board_img = cv2.imread('samples/box_med.jpg')
-    sub_images = get_subimages(board_img, 5, 7)
-    # cv2.imshow('Bottom Left', sub_images[4])
+    x_min, x_max, y_min, y_max = get_trimmed_box(piece_img)
+    piece = piece_img[y_min:y_max,x_min:x_max]
 
-    find_image_box(board_img, piece_img)
+    x_min, x_max, y_min, y_max = find_image_box(board_img, piece)
+    print "(%s, %s) - (%s, %s)" % (str(x_min),str(y_min),str(x_max),str(y_max))
 
 if __name__ == '__main__':
     main()
