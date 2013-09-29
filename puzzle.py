@@ -97,7 +97,7 @@ def solve_puzzle(piece_img, board_img):
     x_min, x_max, y_min, y_max = get_trimmed_box(piece_img)
     piece = piece_img[y_min:y_max,x_min:x_max]
 
-    return find_image_box(board_img, piece_img)
+    return find_image_box(board_img, piece)
 
 def main():
     print solve_puzzle('samples/piece2_small.jpg', 'samples/box_med.jpg')
