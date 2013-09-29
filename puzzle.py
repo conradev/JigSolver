@@ -91,14 +91,17 @@ def find_image_box(outer_img, inner_img):
     box = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
     return cv2.perspectiveTransform(box.reshape(1, -1, 2), H).reshape(-1, 2)
 
-def main():
-    piece_img = cv2.imread('samples/piece2_small.jpg')[100:-100,100:-100]
-    board_img = cv2.imread('samples/box_med.jpg')
+def solve_puzzle(piece_img, board_img):
+    piece_img = cv2.imread(piece_img)[100:-100,100:-100]
+    board_img = cv2.imread(board_img)
     x_min, x_max, y_min, y_max = get_trimmed_box(piece_img)
     piece = piece_img[y_min:y_max,x_min:x_max]
 
-    x_min, x_max, y_min, y_max = find_image_box(board_img, piece)
-    print "(%s, %s) - (%s, %s)" % (str(x_min),str(y_min),str(x_max),str(y_max))
+    return find_image_box(board_img, piece)
+
+def main():
+    print solve_puzzle('samples/piece2_small.jpg', 'samples/box_med.jpg')
+
 
 if __name__ == '__main__':
     main()
