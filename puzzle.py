@@ -67,6 +67,19 @@ def get_trimmed_box(img, edges):
 
     return new_x_min, new_x_max, new_y_min, new_y_max
 
+def get_subimages(img, rows, columns):
+    """Cuts an image into the number of rows and columns provided and returns an array of images"""
+    height = len(img)
+    width = len(img[0])
+    sub_height = np.ceil(height / rows)
+    sub_width = np.ceil(width / columns)
+    sub_images = []
+    for i in range(columns):
+        for j in range(rows):
+            (x_min, y_min) = (i * sub_width, j * sub_height)
+            (x_max, y_max) = (x_min + sub_width, y_min + sub_height)
+            sub_images.append(img[y_min:y_max,x_min:x_max])
+    return sub_images
 
 def main():
     piece_img = cv2.imread('samples/piece_small.jpg')
@@ -74,8 +87,12 @@ def main():
     x_min, x_max, y_min, y_max = get_trimmed_box(piece_img, edges)
 
     piece = piece_img[y_min:y_max,x_min:x_max]
-
     cv2.imshow('Display', piece)
+
+    board_img = cv2.imread('samples/box_med.jpg')
+    sub_images = get_subimages(board_img, 5, 7)
+    cv2.imshow('Bottom Left', sub_images[4])
+
     cv2.waitKey(500)
     while True:
         time.sleep(0.5)
