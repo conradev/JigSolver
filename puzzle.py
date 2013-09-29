@@ -96,6 +96,7 @@ def solve_puzzle(piece_img, board_img):
     board_img = cv2.imread(board_img)
     x_min, x_max, y_min, y_max = get_trimmed_box(piece_img)
     piece = piece_img[y_min:y_max,x_min:x_max]
+    cv2.imwrite('/tmp/CroppedPiece.jpg', piece)
 
     return find_image_box(board_img, piece)
 
